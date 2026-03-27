@@ -31,16 +31,14 @@ class ConnectionManager:
             self.active_connections.remove(websocket)
 
     async def broadcast(self, message: dict):
-        # We only want to keep alive connections
-        dead_connections = []
-        for connection in self.active_connections:
+        dead = []
+        for conn in self.active_connections:
             try:
-                await connection.send_text(json.dumps(message))
+                await conn.send_text(json.dumps(message))
             except Exception:
-                dead_connections.append(connection)
-        
-        for dc in dead_connections:
-            self.disconnect(dc)
+                dead.append(conn)
+        for d in dead:
+            self.disconnect(d)
 
 manager = ConnectionManager()
 simulation_running = False
@@ -50,68 +48,82 @@ async def run_simulation():
     if simulation_running:
         return
     simulation_running = True
-    
+
     loader = DatasetLoader()
     loader.load_or_fallback()
-    
-    await asyncio.sleep(2) # Give clients time to connect
+
+    await asyncio.sleep(3)  # Give frontend time to connect
     await manager.broadcast({"type": "log", "message": "[System] Generating baseline CPS behaviour..."})
+    await asyncio.sleep(1)
+
     train_data = generate_normal_traffic(NORMAL_SAMPLES)
     loader.fit(train_data)
     train_data = loader.normalize(train_data)
-    
+
     system = SwarmDefenceSystem()
     await manager.broadcast({"type": "log", "message": "[System] Initializing Swarm Nodes and Training Edge Models..."})
     system.initialize(train_data)
     await asyncio.sleep(2)
+    await manager.broadcast({"type": "log", "message": "[System] All nodes online. Beginning network surveillance..."})
+    await asyncio.sleep(1.5)
 
     sample_id = 1
-    
+
     try:
-        # Phase 1: Normal Traffic Baseline
-        for _ in range(3):
+        # ── Phase 1: Normal Traffic Baseline (5 samples) ──
+        for i in range(5):
             test_data = loader.normalize(generate_normal_traffic(1))
             state = system.process_sample(test_data.iloc[[0]], sample_id, is_actual_attack=False)
             await manager.broadcast({"type": "state", "data": state})
-            
+
             if state['is_attack_detected']:
-                await manager.broadcast({"type": "log", "message": f"🚨 [Node Consensus] FALSE POSITIVE Detected (Score: {state['threat_level']:.2f})"})
+                await manager.broadcast({"type": "log", "message": f"[Node Consensus] FALSE POSITIVE Detected (Score: {state['threat_level']:.2f})"})
             else:
-                await manager.broadcast({"type": "log", "message": f"✅ [Node Consensus] Normal Traffic (Consensus: {state['attack_votes']}/{state['total_nodes']})"})
-            
+                await manager.broadcast({"type": "log", "message": f"[Node Consensus] Normal Traffic — Consensus: {state['attack_votes']}/{state['total_nodes']}"})
+
             sample_id += 1
             await asyncio.sleep(1.5)
-        
-        # Phase 2: Attack Injection Series
+
+        # ── Phase 2: Attack Injection Series ──
         attack_types = ['dos', 'fdi', 'lateral_movement']
         attacker_ips = ['192.168.1.100', '192.168.1.101', '192.168.1.102']
-        
-        for attack, ip in zip(attack_types, attacker_ips):
-            await manager.broadcast({"type": "log", "message": f"🚩 INTEL ALERT: Simulated {attack.upper()} attack originating from {ip}..."})
-            
-            # Attack spike
+        attack_labels = ['Denial of Service', 'False Data Injection', 'Lateral Movement']
+
+        for attack, ip, label in zip(attack_types, attacker_ips, attack_labels):
+            await manager.broadcast({"type": "log", "message": f"[INTEL] Simulating {label} attack from {ip}..."})
+            await asyncio.sleep(1)
+
             test_data = loader.normalize(generate_attack_traffic(attack, 1))
             state = system.process_sample(test_data.iloc[[0]], sample_id, is_actual_attack=True, attacker_ip=ip)
-            
             await manager.broadcast({"type": "state", "data": state})
-            
+
             if state['is_attack_detected']:
-                await manager.broadcast({"type": "log", "message": f"⚠️ [Consensus Reached] THREAT CONFIRMED! ({state['attack_votes']}/{state['total_nodes']} nodes)"})
-                await asyncio.sleep(0.5)
-                await manager.broadcast({"type": "containment", "message": f"🔒 CONTAINMENT: Device {ip} ISOLATED autonomously."})
-            
+                await manager.broadcast({"type": "log", "message": f"[Consensus] THREAT CONFIRMED — {state['attack_votes']}/{state['total_nodes']} nodes flagged"})
+                await asyncio.sleep(0.8)
+                await manager.broadcast({"type": "containment", "message": f"[Containment] Device {ip} ISOLATED — autonomous response executed"})
+
             sample_id += 1
-            await asyncio.sleep(3.0)
-            
-        await manager.broadcast({"type": "log", "message": "🏁 SIMULATION COMPLETE. All systems secure. No further traffic expected."})
-        
+            await asyncio.sleep(2.5)
+
+            # 2 normal samples between attacks for chart contrast
+            for _ in range(2):
+                test_data = loader.normalize(generate_normal_traffic(1))
+                state = system.process_sample(test_data.iloc[[0]], sample_id, is_actual_attack=False)
+                await manager.broadcast({"type": "state", "data": state})
+                await manager.broadcast({"type": "log", "message": f"[Node Consensus] Normal Traffic — Consensus: {state['attack_votes']}/{state['total_nodes']}"})
+                sample_id += 1
+                await asyncio.sleep(1.5)
+
+        await asyncio.sleep(1)
+        await manager.broadcast({"type": "log", "message": "[System] Simulation complete. All threats neutralized. Swarm defence stable."})
+
     except Exception as e:
-        print(f"Simulation interrupted: {e}")
+        print(f"Simulation error: {e}")
+    finally:
         simulation_running = False
 
 @app.on_event("startup")
 async def startup_event():
-    # Start the simulation task in the background when the server starts
     asyncio.create_task(run_simulation())
 
 @app.websocket("/ws/simulation")
@@ -119,7 +131,6 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            # Just keep the connection open, we don't expect client messages
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)

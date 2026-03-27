@@ -1,22 +1,207 @@
 @import "tailwindcss";
 
-body {
-  background-color: #0a0f1a;
-  color: #f8fafc;
-  font-family: 'Inter', system-ui, sans-serif;
-  margin: 0;
-  padding: 0;
+/* ============================================
+   SWED-A DESIGN SYSTEM
+   Cybersecurity Command Center Theme
+   ============================================ */
+
+/* --- Custom Theme Variables --- */
+@theme {
+  --color-bg-deep: #030711;
+  --color-bg-base: #0a0f1e;
+  --color-bg-surface: rgba(15, 23, 42, 0.6);
+  --color-bg-elevated: rgba(30, 41, 59, 0.4);
+
+  --color-cyan: #00f0ff;
+  --color-cyan-dim: rgba(0, 240, 255, 0.15);
+  --color-cyan-glow: rgba(0, 240, 255, 0.4);
+
+  --color-red-hot: #ff2d55;
+  --color-red-dim: rgba(255, 45, 85, 0.15);
+  --color-red-glow: rgba(255, 45, 85, 0.5);
+
+  --color-green: #00e676;
+  --color-green-dim: rgba(0, 230, 118, 0.15);
+
+  --color-amber: #ffab00;
+  --color-amber-dim: rgba(255, 171, 0, 0.15);
+
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #475569;
+
+  --color-border: rgba(51, 65, 85, 0.5);
+  --color-border-glow: rgba(0, 240, 255, 0.2);
 }
 
+/* --- Global Resets --- */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  background-color: var(--color-bg-deep);
+  color: var(--color-text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* --- Animated Grid Background --- */
+#root {
+  position: relative;
+}
+
+#root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: grid-drift 20s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes grid-drift {
+  0% { background-position: 0 0; }
+  100% { background-position: 60px 60px; }
+}
+
+/* --- Vignette Overlay --- */
+#root::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, var(--color-bg-deep) 100%);
+  pointer-events: none;
+}
+
+/* --- Glass Card --- */
+.glass-card {
+  background: var(--color-bg-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+  border-color: var(--color-border-glow);
+}
+
+/* --- Glow Effects --- */
+.glow-cyan {
+  box-shadow: 0 0 20px var(--color-cyan-glow), inset 0 0 20px rgba(0, 240, 255, 0.05);
+  border-color: rgba(0, 240, 255, 0.3) !important;
+}
+
+.glow-red {
+  box-shadow: 0 0 25px var(--color-red-glow), inset 0 0 20px rgba(255, 45, 85, 0.05);
+  border-color: rgba(255, 45, 85, 0.4) !important;
+}
+
+/* --- Neon Text --- */
+.neon-cyan {
+  color: var(--color-cyan);
+  text-shadow: 0 0 10px var(--color-cyan-glow), 0 0 30px rgba(0, 240, 255, 0.2);
+}
+
+.neon-red {
+  color: var(--color-red-hot);
+  text-shadow: 0 0 10px var(--color-red-glow), 0 0 30px rgba(255, 45, 85, 0.2);
+}
+
+/* --- Animations --- */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes fade-in-up {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  0% { opacity: 0; transform: translateX(20px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-scan {
+  animation: scan-line 2s linear infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in-up 0.5s ease-out both;
+}
+
+.animate-slide-in {
+  animation: slide-in-right 0.4s ease-out both;
+}
+
+/* --- Terminal Styling --- */
+.terminal-font {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* --- Custom Scrollbar --- */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}
+
+/* --- Chart Tooltip --- */
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+/* --- Status Dot --- */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-green);
+  box-shadow: 0 0 8px var(--color-green);
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+.status-dot-red {
+  background: var(--color-red-hot);
+  box-shadow: 0 0 8px var(--color-red-hot);
 }
