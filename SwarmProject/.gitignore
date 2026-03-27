@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+venv/
+env/
+ENV/
+.venv/
+swarm_defence.log
+
+# Node / React Dashboard
+dashboard/node_modules/
+dashboard/dist/
+dashboard/dist-ssr/
+dashboard/*.local
+dashboard/.npm/
+dashboard/.eslintcache
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
